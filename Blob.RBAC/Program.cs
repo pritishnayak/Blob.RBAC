@@ -17,6 +17,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+const string cosmosAccountEndpoint = "https://audax-db.documents.azure.com:443/";
+var cosmosClientOptions = new CosmosClientOptions
+{
+    ApplicationName = "Audex.Api",
+    Serializer = new CosmosSystemTextJsonSerializer()
+};
+CosmosClient cosmosClient = new CosmosClient(cosmosAccountEndpoint, new DefaultAzureCredential(), cosmosClientOptions);
+Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync("RadarSensorData");
+Container cosmosContainer = await database.CreateContainerIfNotExistsAsync("SensorData", "/partitionKey");
+builder.Services.AddSingleton<Container>(cosmosContainer);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -53,21 +64,9 @@ app.MapGet("/test", () =>
     .WithName("test")
     .WithOpenApi();
 
-app.MapPost("/data", async ([FromBody] dynamic data) =>
+app.MapPost("/data", async ([FromBody] dynamic data, [FromService] Container container) =>
     {
-        const string connStr =
-            "AccountEndpoint=https://audax-db.documents.azure.com:443/;AccountKey=ObKP93EieTxa5t1gDLh0znYtL147ttt8BQfmUuT3en2QBuQVRrcPX3dN8NznvrbBB1NqpbSVJqSoACDbOG321g==;";
-        const string cosmosAccountEndpoint = "https://audax-db.documents.azure.com:443/";
-        var cosmosClientOptions = new CosmosClientOptions
-        {
-            ApplicationName = "Audex.Api",
-            Serializer = new CosmosSystemTextJsonSerializer()
-        }; 
-
-        using CosmosClient cosmosClient = new CosmosClient(cosmosAccountEndpoint, new DefaultAzureCredential(), cosmosClientOptions);
-        //using CosmosClient cosmosClient = new CosmosClient(connStr, cosmosClientOptions);
-        Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync("RadarSensorData");
-        Container container = await database.CreateContainerIfNotExistsAsync("SensorData", "/partitionKey");
+        
         var cData = new SensorData
         {
             Data = data
