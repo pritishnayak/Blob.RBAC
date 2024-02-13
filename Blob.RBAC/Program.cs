@@ -65,6 +65,7 @@ app.MapPost("/data", async ([FromBody] dynamic data) =>
         }; 
 
         using CosmosClient cosmosClient = new CosmosClient(cosmosAccountEndpoint, new DefaultAzureCredential(), cosmosClientOptions);
+        //using CosmosClient cosmosClient = new CosmosClient(connStr, cosmosClientOptions);
         Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync("RadarSensorData");
         Container container = await database.CreateContainerIfNotExistsAsync("SensorData", "/partitionKey");
         var cData = new SensorData
